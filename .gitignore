@@ -1,0 +1,6 @@
+data_mock/
+data/
+*.pyc
+__pycache__/
+*.pth
+wandb/
