@@ -10,6 +10,7 @@ from src.data_loader import get_dataloaders
 from src.models.alexnet import get_model
 from tqdm import tqdm
 import numpy as np
+import pandas as pd
 
 def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, device='cpu', use_wandb=False):
     since = time.time()
@@ -114,9 +115,36 @@ def main():
     model = get_model(args.model_name, num_classes)
     model = model.to(device)
 
-    # Handle class imbalance (Optional: Weighted Cross Entropy)
-    # For now, we use standard CrossEntropyLoss
-    criterion = nn.CrossEntropyLoss()
+    # Handle class imbalance with Weighted Cross Entropy
+    def calculate_class_weights(dataset):
+        # Calculate counts per class
+        class_counts = dataset.data_info['label'].value_counts().sort_index()
+
+        # Ensure all classes are represented in counts, fill missing with 0
+        full_counts = pd.Series(0, index=range(num_classes))
+        full_counts.update(class_counts)
+        class_counts = full_counts.values
+
+        total_samples = sum(class_counts)
+
+        # Avoid division by zero for classes with 0 samples
+        # We replace 0 counts with 1 for calculation to avoid inf,
+        # but practically those weights won't be used if no samples exist.
+        safe_counts = np.where(class_counts == 0, 1, class_counts)
+
+        # Calculate weights: Inverse frequency (total / (num_classes * count))
+        weights = total_samples / (num_classes * safe_counts)
+
+        return torch.FloatTensor(weights)
+
+    if 'train' in dataloaders:
+        train_dataset = dataloaders['train'].dataset
+        class_weights = calculate_class_weights(train_dataset).to(device)
+        print(f"Class weights calculated. Min: {class_weights.min():.4f}, Max: {class_weights.max():.4f}")
+        criterion = nn.CrossEntropyLoss(weight=class_weights)
+    else:
+        print("Warning: No training data found, using standard CrossEntropyLoss")
+        criterion = nn.CrossEntropyLoss()
 
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
 

@@ -21,7 +21,7 @@
 
 ## Phase 4: Training & Evaluation
 - [x] Create training script with logging (WandB) (`src/train.py`)
-- [x] Implement class imbalance handling (Can be enhanced with Class Weights)
+- [x] Implement class imbalance handling (Class Weights implemented in `src/train.py`)
 - [x] Create evaluation script (Accuracy, Confusion Matrix) (`src/evaluate.py`)
 
 ## Phase 5: Experiments (Simulation/Execution)
@@ -32,5 +32,5 @@
 - [ ] Experiment D: Combined (To be run by user with real data)
 
 ## Phase 6: Finalization
-- [x] Polish Documentation (`README.md` updated in next steps)
+- [x] Polish Documentation
 - [x] Final Code Review
