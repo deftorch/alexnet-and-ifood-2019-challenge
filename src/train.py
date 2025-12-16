@@ -115,8 +115,33 @@ def main():
     model = model.to(device)
 
     # Handle class imbalance (Optional: Weighted Cross Entropy)
-    # For now, we use standard CrossEntropyLoss
-    criterion = nn.CrossEntropyLoss()
+    if 'train' in dataloaders:
+        print("Calculating class weights for imbalance handling...")
+        train_dataset = dataloaders['train'].dataset
+        # Extract labels from the dataset.
+        # Note: This assumes the dataset has a data_info attribute with labels in the second column (index 1)
+        try:
+            # Efficiently get all labels
+            all_labels = train_dataset.data_info.iloc[:, 1].tolist()
+            class_counts = np.bincount(all_labels, minlength=num_classes)
+
+            # Calculate weights: inverse frequency
+            # Add small epsilon to avoid division by zero if a class has 0 samples
+            weights = 1.0 / (class_counts + 1e-6)
+
+            # Normalize weights so they sum to num_classes (optional, but keeps scale consistent)
+            weights = weights / weights.sum() * num_classes
+
+            # Convert to tensor
+            class_weights = torch.FloatTensor(weights).to(device)
+            print("Class weights calculated.")
+
+            criterion = nn.CrossEntropyLoss(weight=class_weights)
+        except Exception as e:
+            print(f"Warning: Could not calculate class weights: {e}. Using standard CrossEntropyLoss.")
+            criterion = nn.CrossEntropyLoss()
+    else:
+        criterion = nn.CrossEntropyLoss()
 
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
 
